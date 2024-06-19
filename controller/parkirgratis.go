@@ -91,15 +91,36 @@ func PutTempatParkir(respw http.ResponseWriter, req *http.Request) {
 		helper.WriteJSON(respw, http.StatusBadRequest, err.Error())
 		return
 	}
+
 	
-	filter := bson.M{"nama_tempat": newTempat.Nama_Tempat}
+	fmt.Println("Decoded document:", newTempat)
+
+	if newTempat.ID.IsZero() {
+		helper.WriteJSON(respw, http.StatusBadRequest, "ID is required")
+		return
+	}
+
+	filter := bson.M{"_id": newTempat.ID}
 	update := bson.M{"$set": newTempat}
-	if _, err := atdb.UpdateDoc(config.Mongoconn, "tempat", filter, update); err != nil {
+	fmt.Println("Filter:", filter)
+	fmt.Println("Update:", update)
+
+
+	result, err := atdb.UpdateDoc(config.Mongoconn, "tempat", filter, update)
+	if err != nil {
 		helper.WriteJSON(respw, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	
+	if result.ModifiedCount == 0 {
+		helper.WriteJSON(respw, http.StatusNotFound, "Document not found or not modified")
+		return
+	}
+
 	helper.WriteJSON(respw, http.StatusOK, newTempat)
 }
+
 
 
 func DeleteTempatParkir(respw http.ResponseWriter, req *http.Request) {
