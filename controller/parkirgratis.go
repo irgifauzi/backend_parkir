@@ -86,34 +86,19 @@ func PostKoordinat(respw http.ResponseWriter, req *http.Request) {
 }
 
 func PutTempatParkir(respw http.ResponseWriter, req *http.Request) {
-	id := helper.GetParam(req)
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		helper.WriteJSON(respw, http.StatusBadRequest, "Invalid ID format")
+	var newTempat model.Tempat
+	if err := json.NewDecoder(req.Body).Decode(&newTempat); err != nil {
+		helper.WriteJSON(respw, http.StatusBadRequest, err.Error())
 		return
 	}
-
-	var updatedTempatParkir model.Tempat
-	if err := json.NewDecoder(req.Body).Decode(&updatedTempatParkir); err != nil {
-		helper.WriteJSON(respw, http.StatusBadRequest, "Invalid JSON data")
+	
+	filter := bson.M{"nama_tempat": newTempat.Nama_Tempat}
+	update := bson.M{"$set": newTempat}
+	if _, err := atdb.UpdateDoc(config.Mongoconn, "tempat", filter, update); err != nil {
+		helper.WriteJSON(respw, http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	filter := bson.M{"_id": objectID}
-	update := bson.M{"$set": updatedTempatParkir}
-
-	result, err := atdb.UpdateDoc(config.Mongoconn, "tempat", filter, update)
-	if err != nil {
-		helper.WriteJSON(respw, http.StatusInternalServerError, "Failed to update document")
-		return
-	}
-
-	if result.ModifiedCount == 0 {
-		helper.WriteJSON(respw, http.StatusNotFound, "Document not found")
-		return
-	}
-
-	helper.WriteJSON(respw, http.StatusOK, updatedTempatParkir)
+	helper.WriteJSON(respw, http.StatusOK, newTempat)
 }
 
 
