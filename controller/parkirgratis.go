@@ -84,3 +84,4 @@ func PostKoordinat(respw http.ResponseWriter, req *http.Request) {
 	}
 	helper.WriteJSON(respw, http.StatusOK, "Markers updated")
 }
+//sds
