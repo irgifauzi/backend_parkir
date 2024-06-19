@@ -132,3 +132,7 @@ func ReplaceOneDoc(db *mongo.Database, collection string, filter bson.M, doc int
 	}
 	return
 }
+func DeleteOneDoc(db *mongo.Database, collection string, filter bson.M) error {
+	_, err := db.Collection(collection).DeleteOne(context.Background(), filter)
+	return err
+}
