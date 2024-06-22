@@ -121,22 +121,34 @@ func PutTempatParkir(respw http.ResponseWriter, req *http.Request) {
 	helper.WriteJSON(respw, http.StatusOK, newTempat)
 }
 
-
-
 func DeleteTempatParkir(respw http.ResponseWriter, req *http.Request) {
-	var tempatParkirToDelete model.Tempat
-	if err := json.NewDecoder(req.Body).Decode(&tempatParkirToDelete); err != nil {
-		helper.WriteJSON(respw, http.StatusBadRequest, "Invalid JSON data")
+	var requestBody struct {
+		ID string `json:"id"`
+	}
+
+	if err := json.NewDecoder(req.Body).Decode(&requestBody); err != nil {
+		helper.WriteJSON(respw, http.StatusBadRequest, map[string]string{"message": "Invalid JSON data"})
 		return
 	}
 
-	filter := bson.M{"nama_tempat": tempatParkirToDelete.Nama_Tempat}
-
-	err := atdb.DeleteOneDoc(config.Mongoconn, "tempat", filter)
+	objectId, err := primitive.ObjectIDFromHex(requestBody.ID)
 	if err != nil {
-		helper.WriteJSON(respw, http.StatusInternalServerError, "Failed to delete document")
+		helper.WriteJSON(respw, http.StatusBadRequest, map[string]string{"message": "Invalid ID format"})
 		return
 	}
 
-	helper.WriteJSON(respw, http.StatusOK, "Document deleted successfully")
+	filter := bson.M{"_id": objectId}
+
+	deletedCount, err := atdb.DeleteOneDoc(config.Mongoconn, "tempat", filter)
+	if err != nil {
+		helper.WriteJSON(respw, http.StatusInternalServerError, map[string]string{"message": "Failed to delete document", "error": err.Error()})
+		return
+	}
+
+	if deletedCount == 0 {
+		helper.WriteJSON(respw, http.StatusNotFound, map[string]string{"message": "Document not found"})
+		return
+	}
+
+	helper.WriteJSON(respw, http.StatusOK, map[string]string{"message": "Document deleted successfully"})
 }

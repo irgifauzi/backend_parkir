@@ -2,6 +2,7 @@ package atdb
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -132,7 +133,10 @@ func ReplaceOneDoc(db *mongo.Database, collection string, filter bson.M, doc int
 	}
 	return
 }
-func DeleteOneDoc(db *mongo.Database, collection string, filter bson.M) error {
-	_, err := db.Collection(collection).DeleteOne(context.Background(), filter)
-	return err
+func DeleteOneDoc(db *mongo.Database, collection string, filter bson.M) (int64, error) {
+	result, err := db.Collection(collection).DeleteOne(context.Background(), filter)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete document: %w", err)
+	}
+	return result.DeletedCount, nil
 }
