@@ -2,8 +2,10 @@ package atdb
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
+	"log"
 	"net"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -133,10 +135,26 @@ func ReplaceOneDoc(db *mongo.Database, collection string, filter bson.M, doc int
 	}
 	return
 }
-func DeleteOneDoc(db *mongo.Database, collection string, filter bson.M) (int64, error) {
-	result, err := db.Collection(collection).DeleteOne(context.Background(), filter)
+func DeleteOneDoc(db *mongo.Database, collection string, filter bson.M) error {
+	_, err := db.Collection(collection).DeleteOne(context.Background(), filter)
+	return err
+}
+
+func Jsonstr(strc interface{}) string {
+	jsonData, err := json.Marshal(strc)
 	if err != nil {
-		return 0, fmt.Errorf("failed to delete document: %w", err)
+		log.Fatal(err)
 	}
-	return result.DeletedCount, nil
+	return string(jsonData)
+}
+
+func WriteJSON(respw http.ResponseWriter, statusCode int, content interface{}) {
+	respw.Header().Set("Content-Type", "application/json")
+	respw.WriteHeader(statusCode)
+	respw.Write([]byte(Jsonstr(content)))
+}
+
+func WriteString(respw http.ResponseWriter, statusCode int, content string) {
+	respw.WriteHeader(statusCode)
+	respw.Write([]byte(content))
 }
