@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	"net/http"
 
 	"github.com/gocroot/config"
@@ -13,6 +14,8 @@ import (
 	"github.com/whatsauth/itmodel"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func GetLokasi(respw http.ResponseWriter, req *http.Request) {
@@ -148,4 +151,47 @@ func DeleteTempatParkir(respw http.ResponseWriter, req *http.Request) {
 	}
 
 	helper.WriteJSON(respw, http.StatusOK, map[string]string{"message": "Document deleted successfully"})
+}
+
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func AdminLogin(respw http.ResponseWriter, req *http.Request) {
+	var loginReq LoginRequest
+
+	// Decode the JSON request body
+	if err := json.NewDecoder(req.Body).Decode(&loginReq); err != nil {
+		helper.WriteJSON(respw, http.StatusBadRequest, map[string]string{"message": "Invalid JSON data"})
+		return
+	}
+
+	// Connect to MongoDB
+	clientOptions := options.Client().ApplyURI(config.MongoURI) // Assuming MongoURI is defined in your config
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+	if err != nil {
+		helper.WriteJSON(respw, http.StatusInternalServerError, map[string]string{"message": "Failed to connect to MongoDB", "error": err.Error()})
+		return
+	}
+	defer client.Disconnect(context.TODO())
+
+	// Select the admin collection
+	adminCollection := client.Database("parkir_db").Collection("admin")
+
+	// Find the admin document
+	var admin model.Admin
+	filter := bson.M{"username": loginReq.Username, "password": loginReq.Password}
+	err = adminCollection.FindOne(context.TODO(), filter).Decode(&admin)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			helper.WriteJSON(respw, http.StatusUnauthorized, map[string]string{"message": "Invalid username or password"})
+		} else {
+			helper.WriteJSON(respw, http.StatusInternalServerError, map[string]string{"message": "Failed to login", "error": err.Error()})
+		}
+		return
+	}
+
+	// If the admin document is found, return success message
+	helper.WriteJSON(respw, http.StatusOK, map[string]string{"message": "Login successful"})
 }

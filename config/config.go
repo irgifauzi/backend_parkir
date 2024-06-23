@@ -22,3 +22,4 @@ func SetEnv() {
 	PublicKeyWhatsAuth = profile.PublicKey
 	WAAPIToken = profile.Token
 }
+const MongoURI = "mongodb+srv://irgifauzi:%40Sasuke123@webservice.rq9zk4m.mongodb.net/"

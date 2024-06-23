@@ -140,3 +140,6 @@ func DeleteOneDoc(db *mongo.Database, collection string, filter bson.M) (int64, 
 	}
 	return result.DeletedCount, nil
 }
+func FindOne(ctx context.Context, collection *mongo.Collection, filter bson.M, result interface{}) error {
+    return collection.FindOne(ctx, filter).Decode(result)
+}
