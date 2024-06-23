@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
 	"net/http"
 
 	"github.com/gocroot/config"
@@ -87,67 +86,66 @@ func PostKoordinat(respw http.ResponseWriter, req *http.Request) {
 }
 
 func PutTempatParkir(respw http.ResponseWriter, req *http.Request) {
-	var tempat model.Tempat
-	err := json.NewDecoder(req.Body).Decode(&tempat)
-	if err != nil {
-		var respn model.Response
-		respn.Response = err.Error()
-		helper.WriteJSON(respw, http.StatusForbidden, respn)
+	var newTempat model.Tempat
+	if err := json.NewDecoder(req.Body).Decode(&newTempat); err != nil {
+		helper.WriteJSON(respw, http.StatusBadRequest, err.Error())
 		return
-		
 	}
-	temp, err:= atdb.GetOneDoc[model.Tempat](config.Mongoconn,"tempat json",bson.M{"_id":tempat.ID})
-	if err != nil {
-		var respn model.Response
-		respn.Response = err.Error()
-		helper.WriteJSON(respw, http.StatusForbidden, respn)
+
+	fmt.Println("Decoded document:", newTempat)
+
+	if newTempat.ID.IsZero() {
+		helper.WriteJSON(respw, http.StatusBadRequest, "ID is required")
 		return
-		
 	}
-	temp.Nama_Tempat = tempat.Nama_Tempat
-	temp.Lokasi = tempat.Lokasi
-	temp.Fasilitas = tempat.Fasilitas
-	temp.Lon = tempat.Lon
-	temp.Lat = tempat.Lat
-	temp.Gambar = tempat.Gambar
-	_, err= atdb.ReplaceOneDoc(config.Mongoconn,"tempat json",bson.M{"_id":tempat.ID},temp)
+
+	filter := bson.M{"_id": newTempat.ID}
+	update := bson.M{"$set": newTempat}
+	fmt.Println("Filter:", filter)
+	fmt.Println("Update:", update)
+
+	result, err := atdb.UpdateDoc(config.Mongoconn, "tempat", filter, update)
 	if err != nil {
-		var respn model.Response
-		respn.Response = err.Error()
-		helper.WriteJSON(respw, http.StatusForbidden, respn)
+		helper.WriteJSON(respw, http.StatusInternalServerError, err.Error())
 		return
-		
 	}
-	helper.WriteJSON(respw, http.StatusOK, temp)
-	
+
+	if result.ModifiedCount == 0 {
+		helper.WriteJSON(respw, http.StatusNotFound, "Document not found or not modified")
+		return
+	}
+
+	helper.WriteJSON(respw, http.StatusOK, newTempat)
 }
 
 func DeleteTempatParkir(respw http.ResponseWriter, req *http.Request) {
-	var tempat model.Tempat
-	err := json.NewDecoder(req.Body).Decode(&tempat)
-	if err != nil {
-		var respn model.Response
-		respn.Response = err.Error()
-		helper.WriteJSON(respw, http.StatusForbidden, respn)
-		return
-
+	var requestBody struct {
+		ID string `json:"id"`
 	}
-	err = atdb.DeleteOneDoc(config.Mongoconn, "tempat json", bson.M{"_id": tempat.ID})
-	if err != nil {
-		var respn model.Response
-		respn.Response = err.Error()
-		helper.WriteJSON(respw, http.StatusForbidden, respn)
+
+	if err := json.NewDecoder(req.Body).Decode(&requestBody); err != nil {
+		helper.WriteJSON(respw, http.StatusBadRequest, map[string]string{"message": "Invalid JSON data"})
 		return
-
 	}
-	parkirgratis, err := atdb.GetAllDoc[[]model.Tempat](config.Mongoconn, "tempat json", bson.M{"_id": tempat.ID})
+
+	objectId, err := primitive.ObjectIDFromHex(requestBody.ID)
 	if err != nil {
-		var respn model.Response
-		respn.Response = err.Error()
-		helper.WriteJSON(respw, http.StatusForbidden, respn)
+		helper.WriteJSON(respw, http.StatusBadRequest, map[string]string{"message": "Invalid ID format"})
 		return
-
 	}
-	helper.WriteJSON(respw, http.StatusOK, parkirgratis)
 
+	filter := bson.M{"_id": objectId}
+
+	deletedCount, err := atdb.DeleteOneDoc(config.Mongoconn, "tempat", filter)
+	if err != nil {
+		helper.WriteJSON(respw, http.StatusInternalServerError, map[string]string{"message": "Failed to delete document", "error": err.Error()})
+		return
+	}
+
+	if deletedCount == 0 {
+		helper.WriteJSON(respw, http.StatusNotFound, map[string]string{"message": "Document not found"})
+		return
+	}
+
+	helper.WriteJSON(respw, http.StatusOK, map[string]string{"message": "Document deleted successfully"})
 }
