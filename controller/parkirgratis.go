@@ -96,7 +96,7 @@ func PutTempatParkir(respw http.ResponseWriter, req *http.Request) {
 		return
 		
 	}
-	temp, err:= atdb.GetOneDoc[model.Tempat](config.Mongoconn,"data json",bson.M{"_id":tempat.ID})
+	temp, err:= atdb.GetOneDoc[model.Tempat](config.Mongoconn,"tempat json",bson.M{"_id":tempat.ID})
 	if err != nil {
 		var respn model.Response
 		respn.Response = err.Error()
@@ -110,7 +110,7 @@ func PutTempatParkir(respw http.ResponseWriter, req *http.Request) {
 	temp.Lon = tempat.Lon
 	temp.Lat = tempat.Lat
 	temp.Gambar = tempat.Gambar
-	_, err= atdb.ReplaceOneDoc(config.Mongoconn,"data json",bson.M{"_id":tempat.ID},temp)
+	_, err= atdb.ReplaceOneDoc(config.Mongoconn,"tempat json",bson.M{"_id":tempat.ID},temp)
 	if err != nil {
 		var respn model.Response
 		respn.Response = err.Error()
@@ -132,7 +132,7 @@ func DeleteTempatParkir(respw http.ResponseWriter, req *http.Request) {
 		return
 
 	}
-	err = atdb.DeleteOneDoc(config.Mongoconn, "data json", bson.M{"_id": tempat.ID})
+	err = atdb.DeleteOneDoc(config.Mongoconn, "tempat json", bson.M{"_id": tempat.ID})
 	if err != nil {
 		var respn model.Response
 		respn.Response = err.Error()
@@ -140,7 +140,7 @@ func DeleteTempatParkir(respw http.ResponseWriter, req *http.Request) {
 		return
 
 	}
-	ruteangkot, err := atdb.GetAllDoc[[]model.Tempat](config.Mongoconn, "data json", bson.M{"_id": tempat.ID})
+	parkirgratis, err := atdb.GetAllDoc[[]model.Tempat](config.Mongoconn, "tempat json", bson.M{"_id": tempat.ID})
 	if err != nil {
 		var respn model.Response
 		respn.Response = err.Error()
@@ -148,6 +148,6 @@ func DeleteTempatParkir(respw http.ResponseWriter, req *http.Request) {
 		return
 
 	}
-	helper.WriteJSON(respw, http.StatusOK, ruteangkot)
+	helper.WriteJSON(respw, http.StatusOK, parkirgratis)
 
 }
