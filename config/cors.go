@@ -13,7 +13,8 @@ var Origins = []string{
 	"https://iteung.ulbi.ac.id",
 	"https://whatsauth.github.io",
 	"https://pmb.ulbi.ac.id",
-	"https://irgifauzi.github.io",
+	"https://parkirgratis.github.io",
+	"https://parkirgratis.github.io.id",
 }
 
 var Headers = []string{
@@ -34,14 +35,14 @@ func SetAccessControlHeaders(w http.ResponseWriter, r *http.Request) bool {
 	if r.Method == http.MethodOptions {
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type,Login")
-		w.Header().Set("Access-Control-Allow-Methods", "POST,GET")
-		w.Header().Set("Access-Control-Allow-Origin", "https://project_1")
+		w.Header().Set("Access-Control-Allow-Methods", "POST,GET,PUT,DELETE")
+		w.Header().Set("Access-Control-Allow-Origin", "https://parkirgratis.github.io")
 		w.Header().Set("Access-Control-Max-Age", "3600")
 		w.WriteHeader(http.StatusNoContent)
 		return true
 	}
 	// Set CORS headers for the main request.
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
-	w.Header().Set("Access-Control-Allow-Origin", "https://project_1")
+	w.Header().Set("Access-Control-Allow-Origin", "https://parkirgratis.github.io")
 	return false
 }

@@ -34,6 +34,8 @@ func URL(w http.ResponseWriter, r *http.Request) {
 		controller.PutTempatParkir(w, r)
 	case method == "DELETE" && path == "/data/tempat":
 		controller.DeleteTempatParkir(w, r)
+	case method == "DELETE" && path == "/data/koordinat":
+		controller.DeleteKoordinat(w, r)
 	case method == "POST" && path == "/admin/login":
 		controller.AdminLogin(w, r)
 	default:

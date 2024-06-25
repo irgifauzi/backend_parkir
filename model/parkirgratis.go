@@ -16,7 +16,6 @@ type Koordinat struct {
 	ID      primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
 	Markers [][]float64 `json:"markers"`
 }
-
 type Admin struct{
 	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty"`
 	Username string             `bson:"username" json:"username"`

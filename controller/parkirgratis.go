@@ -71,7 +71,7 @@ func PostKoordinat(respw http.ResponseWriter, req *http.Request) {
 	}
 
 	// Set the specific ID you want to update
-	id, err := primitive.ObjectIDFromHex("6661898bb85c143abc747d03")
+	id, err := primitive.ObjectIDFromHex("6679b77450a939208a4a7a28")
 	if err != nil {
 		helper.WriteJSON(respw, http.StatusBadRequest, "Invalid ID format")
 		return
@@ -161,13 +161,12 @@ type LoginRequest struct {
 func AdminLogin(respw http.ResponseWriter, req *http.Request) {
 	var loginReq LoginRequest
 
-	// Decode the JSON request body
 	if err := json.NewDecoder(req.Body).Decode(&loginReq); err != nil {
 		helper.WriteJSON(respw, http.StatusBadRequest, map[string]string{"message": "Invalid JSON data"})
 		return
 	}
 
-	// Connect to MongoDB
+	
 	clientOptions := options.Client().ApplyURI(config.MongoURI) // Assuming MongoURI is defined in your config
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
@@ -176,10 +175,9 @@ func AdminLogin(respw http.ResponseWriter, req *http.Request) {
 	}
 	defer client.Disconnect(context.TODO())
 
-	// Select the admin collection
+
 	adminCollection := client.Database("parkir_db").Collection("admin")
 
-	// Find the admin document
 	var admin model.Admin
 	filter := bson.M{"username": loginReq.Username, "password": loginReq.Password}
 	err = adminCollection.FindOne(context.TODO(), filter).Decode(&admin)
@@ -192,6 +190,47 @@ func AdminLogin(respw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// If the admin document is found, return success message
 	helper.WriteJSON(respw, http.StatusOK, map[string]string{"message": "Login successful"})
 }
+
+
+func DeleteKoordinat(respw http.ResponseWriter, req *http.Request) {
+	var deleteRequest struct {
+		ID      primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
+		Markers [][]float64 `json:"markers"`
+	}
+
+	if err := json.NewDecoder(req.Body).Decode(&deleteRequest); err != nil {
+		helper.WriteJSON(respw, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	id, err := primitive.ObjectIDFromHex("6661898bb85c143abc747d03")
+	if err != nil {
+		helper.WriteJSON(respw, http.StatusBadRequest, "Invalid ID format")
+		return
+	}
+
+	filter := bson.M{
+		"_id": id,
+		"markers": bson.M{
+			"$in": deleteRequest.Markers,
+		},
+	}
+
+	update := bson.M{
+		"$pull": bson.M{
+			"markers": bson.M{
+				"$in": deleteRequest.Markers,
+			},
+		},
+	}
+
+	if _, err := atdb.UpdateDoc(config.Mongoconn, "marker", filter, update); err != nil {
+		helper.WriteJSON(respw, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	helper.WriteJSON(respw, http.StatusOK, "Coordinates deleted")
+}
+

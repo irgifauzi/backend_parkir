@@ -35,7 +35,7 @@ func GithubUpload(GitHubAccessToken, GitHubAuthorName, GitHubAuthorEmail string,
 	opts := &github.RepositoryContentFileOptions{
 		Message: github.String("Upload file"),
 		Content: fileContent,
-		Branch:  github.String("main"),
+		Branch:  github.String("release"),
 		Author: &github.CommitAuthor{
 			Name:  github.String(GitHubAuthorName),
 			Email: github.String(GitHubAuthorEmail),
