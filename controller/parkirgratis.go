@@ -40,28 +40,33 @@ func GetMarker(respw http.ResponseWriter, req *http.Request) {
 	helper.WriteJSON(respw, http.StatusOK, mar)
 }
 
-// PostTempatParkir adalah fungsi yang menangani permintaan POST untuk menyimpan data tempat parkir baru.
 func PostTempatParkir(respw http.ResponseWriter, req *http.Request) {
-	// Membaca data dari body permintaan
-	var tempatParkir model.Tempat
-	if err := json.NewDecoder(req.Body).Decode(&tempatParkir); err != nil {
-		helper.WriteJSON(respw, http.StatusBadRequest, itmodel.Response{Response: err.Error()})
-		return
-	}
+    // Membaca data dari body permintaan
+    var tempatParkir model.Tempat
+    if err := json.NewDecoder(req.Body).Decode(&tempatParkir); err != nil {
+        helper.WriteJSON(respw, http.StatusBadRequest, itmodel.Response{Response: err.Error()})
+        return
+    }
 
-	// Menyisipkan data tempat ke dalam koleksi MongoDB yang ditentukan
-	result, err := config.Mongoconn.Collection("tempat").InsertOne(context.Background(), tempatParkir)
-	if err != nil {
-		helper.WriteJSON(respw, http.StatusInternalServerError, itmodel.Response{Response: err.Error()})
-		return
-	}
+    // Jika ada gambar yang disertakan, tambahkan prefix URL
+    if tempatParkir.Gambar != "" {
+        tempatParkir.Gambar = "https://raw.githubusercontent.com/parkirgratis/filegambar/main/img/" + tempatParkir.Gambar
+    }
 
-	// Mengambil ID dari dokumen yang baru disisipkan
-	insertedID := result.InsertedID.(primitive.ObjectID)
+    // Menyisipkan data tempat ke dalam koleksi MongoDB yang ditentukan
+    result, err := config.Mongoconn.Collection("tempat").InsertOne(context.Background(), tempatParkir)
+    if err != nil {
+        helper.WriteJSON(respw, http.StatusInternalServerError, itmodel.Response{Response: err.Error()})
+        return
+    }
 
-	// Mengirimkan respons sukses dengan ID dari data yang baru disisipkan
-	helper.WriteJSON(respw, http.StatusOK, itmodel.Response{Response: fmt.Sprintf("Tempat parkir berhasil disimpan dengan ID: %s", insertedID.Hex())})
+    // Mengambil ID dari dokumen yang baru disisipkan
+    insertedID := result.InsertedID.(primitive.ObjectID)
+
+    // Mengirimkan respons sukses dengan ID dari data yang baru disisipkan
+    helper.WriteJSON(respw, http.StatusOK, itmodel.Response{Response: fmt.Sprintf("Tempat parkir berhasil disimpan dengan ID: %s", insertedID.Hex())})
 }
+
 
 func PostKoordinat(respw http.ResponseWriter, req *http.Request) {
 	var newKoor model.Koordinat
