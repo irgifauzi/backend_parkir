@@ -246,7 +246,6 @@ func AdminRegister(respw http.ResponseWriter, req *http.Request) {
 
 func DeleteKoordinat(respw http.ResponseWriter, req *http.Request) {
 	var deleteRequest struct {
-		ID      primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
 		Markers [][]float64 `json:"markers"`
 	}
 
@@ -255,19 +254,13 @@ func DeleteKoordinat(respw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id, err := primitive.ObjectIDFromHex("6661898bb85c143abc747d03")
+	id, err := primitive.ObjectIDFromHex("6679b77450a939208a4a7a28")
 	if err != nil {
 		helper.WriteJSON(respw, http.StatusBadRequest, "Invalid ID format")
 		return
 	}
 
-	filter := bson.M{
-		"_id": id,
-		"markers": bson.M{
-			"$in": deleteRequest.Markers,
-		},
-	}
-
+	filter := bson.M{"_id": id}
 	update := bson.M{
 		"$pull": bson.M{
 			"markers": bson.M{
@@ -276,11 +269,13 @@ func DeleteKoordinat(respw http.ResponseWriter, req *http.Request) {
 		},
 	}
 
+	// Perform the update
 	if _, err := atdb.UpdateDoc(config.Mongoconn, "marker", filter, update); err != nil {
 		helper.WriteJSON(respw, http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	// Respond with success
 	helper.WriteJSON(respw, http.StatusOK, "Coordinates deleted")
 }
 
