@@ -20,7 +20,7 @@ func PostUploadGithub(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Starting file upload process")
 
 	// Parse the form file
-	_, header, err := r.FormFile("image")
+	_, header, err := r.FormFile("img")
 	if err != nil {
 		fmt.Println("Error parsing form file:", err)
 		respn.Response = err.Error()
@@ -48,7 +48,7 @@ func PostUploadGithub(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Upload the file to GitHub
-	content, _, err := ghupload.GithubUpload(gh.GitHubAccessToken, gh.GitHubAuthorName, gh.GitHubAuthorEmail, header, "parkirgratis", "parkirgratis.github.io", pathFile, false)
+	content, _, err := ghupload.GithubUpload(gh.GitHubAccessToken, gh.GitHubAuthorName, gh.GitHubAuthorEmail, header, "parkirgratis", "filegambar", pathFile, false)
 	if err != nil {
 		fmt.Println("Error uploading file to GitHub:", err)
 		respn.Info = "gagal upload github"

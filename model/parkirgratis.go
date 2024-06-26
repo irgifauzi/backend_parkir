@@ -16,8 +16,16 @@ type Koordinat struct {
 	ID      primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
 	Markers [][]float64 `json:"markers"`
 }
+
 type Admin struct{
 	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty"`
 	Username string             `bson:"username" json:"username"`
 	Password string             `bson:"password" json:"password"`
+}
+
+type RegisterRequest struct {
+	Username        string `json:"username"`
+	Password        string `json:"password"`
+	ConfirmPassword string `json:"confirm_password"`
+	LastName        string `json:"last_name"`
 }

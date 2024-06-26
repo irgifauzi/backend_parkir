@@ -41,29 +41,25 @@ func GetMarker(respw http.ResponseWriter, req *http.Request) {
 }
 
 func PostTempatParkir(respw http.ResponseWriter, req *http.Request) {
-    // Membaca data dari body permintaan
+ 
     var tempatParkir model.Tempat
     if err := json.NewDecoder(req.Body).Decode(&tempatParkir); err != nil {
         helper.WriteJSON(respw, http.StatusBadRequest, itmodel.Response{Response: err.Error()})
         return
     }
 
-    // Jika ada gambar yang disertakan, tambahkan prefix URL
     if tempatParkir.Gambar != "" {
         tempatParkir.Gambar = "https://raw.githubusercontent.com/parkirgratis/filegambar/main/img/" + tempatParkir.Gambar
     }
 
-    // Menyisipkan data tempat ke dalam koleksi MongoDB yang ditentukan
     result, err := config.Mongoconn.Collection("tempat").InsertOne(context.Background(), tempatParkir)
     if err != nil {
         helper.WriteJSON(respw, http.StatusInternalServerError, itmodel.Response{Response: err.Error()})
         return
     }
 
-    // Mengambil ID dari dokumen yang baru disisipkan
     insertedID := result.InsertedID.(primitive.ObjectID)
 
-    // Mengirimkan respons sukses dengan ID dari data yang baru disisipkan
     helper.WriteJSON(respw, http.StatusOK, itmodel.Response{Response: fmt.Sprintf("Tempat parkir berhasil disimpan dengan ID: %s", insertedID.Hex())})
 }
 
@@ -198,6 +194,55 @@ func AdminLogin(respw http.ResponseWriter, req *http.Request) {
 	helper.WriteJSON(respw, http.StatusOK, map[string]string{"message": "Login successful"})
 }
 
+func AdminRegister(respw http.ResponseWriter, req *http.Request) {
+	var registerReq model.RegisterRequest
+
+	if err := json.NewDecoder(req.Body).Decode(&registerReq); err != nil {
+		helper.WriteJSON(respw, http.StatusBadRequest, map[string]string{"message": "Invalid JSON data"})
+		return
+	}
+
+	if registerReq.Password != registerReq.ConfirmPassword {
+		helper.WriteJSON(respw, http.StatusBadRequest, map[string]string{"message": "Passwords do not match"})
+		return
+	}
+
+	clientOptions := options.Client().ApplyURI(config.MongoURI) 
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+	if err != nil {
+		helper.WriteJSON(respw, http.StatusInternalServerError, map[string]string{"message": "Failed to connect to MongoDB", "error": err.Error()})
+		return
+	}
+	defer client.Disconnect(context.TODO())
+
+	adminCollection := client.Database("parkir_db").Collection("admin")
+
+	// Check if username already exists
+	var existingAdmin model.Admin
+	filter := bson.M{"username": registerReq.Username}
+	err = adminCollection.FindOne(context.TODO(), filter).Decode(&existingAdmin)
+	if err == nil {
+		helper.WriteJSON(respw, http.StatusConflict, map[string]string{"message": "Username already exists"})
+		return
+	} else if err != mongo.ErrNoDocuments {
+		helper.WriteJSON(respw, http.StatusInternalServerError, map[string]string{"message": "Failed to register", "error": err.Error()})
+		return
+	}
+
+	admin := model.Admin{
+		ID:       primitive.NewObjectID(),
+		Username: registerReq.Username,
+		Password: registerReq.Password,
+	}
+
+	_, err = adminCollection.InsertOne(context.TODO(), admin)
+	if err != nil {
+		helper.WriteJSON(respw, http.StatusInternalServerError, map[string]string{"message": "Failed to register", "error": err.Error()})
+		return
+	}
+
+	helper.WriteJSON(respw, http.StatusOK, map[string]string{"message": "Registration successful"})
+}
 
 func DeleteKoordinat(respw http.ResponseWriter, req *http.Request) {
 	var deleteRequest struct {
