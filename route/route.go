@@ -38,6 +38,8 @@ func URL(w http.ResponseWriter, r *http.Request) {
 		controller.DeleteKoordinat(w, r)
 	case method == "POST" && path == "/admin/login":
 		controller.AdminLogin(w, r)
+	case method == "POST" && path == "/admin/register":
+		controller.AdminRegister(w, r)
 	default:
 		controller.NotFound(w, r)
 	}
