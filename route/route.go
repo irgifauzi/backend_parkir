@@ -32,6 +32,8 @@ func URL(w http.ResponseWriter, r *http.Request) {
 		controller.PostUploadGithub(w, r)
 	case method == "PUT" && path == "/data/tempat":
 		controller.PutTempatParkir(w, r)
+	case method == "PUT" && path == "/data/koordinat":
+		controller.PutKoordinat(w, r)
 	case method == "DELETE" && path == "/data/tempat":
 		controller.DeleteTempatParkir(w, r)
 	case method == "DELETE" && path == "/data/koordinat":
