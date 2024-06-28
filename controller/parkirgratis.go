@@ -280,30 +280,31 @@ func DeleteKoordinat(respw http.ResponseWriter, req *http.Request) {
 }
 
 func PutKoordinat(respw http.ResponseWriter, req *http.Request) {
-    var putRequest struct {
-        Markers [][]float64 `json:"markers"`
+    var updateRequest struct {
+        OldMarker []float64 `json:"old_marker"`
+        NewMarker []float64 `json:"new_marker"`
     }
 
-    if err := json.NewDecoder(req.Body).Decode(&putRequest); err != nil {
+    if err := json.NewDecoder(req.Body).Decode(&updateRequest); err != nil {
         helper.WriteJSON(respw, http.StatusBadRequest, "Invalid JSON format: " + err.Error())
         return
     }
 
-    if len(putRequest.Markers) == 0 {
-        helper.WriteJSON(respw, http.StatusBadRequest, "Markers are required")
+    if len(updateRequest.OldMarker) != 2 || len(updateRequest.NewMarker) != 2 {
+        helper.WriteJSON(respw, http.StatusBadRequest, "Both old_marker and new_marker with two coordinates each are required")
         return
     }
 
-    id, err := primitive.ObjectIDFromHex("6679b77450a939208a4a7a28")
+    id, err := primitive.ObjectIDFromHex("667ecc49ebdbee89e671f225") // Example ID, replace with actual if necessary
     if err != nil {
         helper.WriteJSON(respw, http.StatusBadRequest, "Invalid ID format")
         return
     }
 
-    filter := bson.M{"_id": id}
+    filter := bson.M{"_id": id, "markers": updateRequest.OldMarker}
     update := bson.M{
         "$set": bson.M{
-            "markers": putRequest.Markers,
+            "markers.$": updateRequest.NewMarker,
         },
     }
 
@@ -314,7 +315,7 @@ func PutKoordinat(respw http.ResponseWriter, req *http.Request) {
     }
 
     if result.ModifiedCount == 0 {
-        helper.WriteJSON(respw, http.StatusNotFound, "Document not found or not modified")
+        helper.WriteJSON(respw, http.StatusNotFound, "Document not found or marker not modified")
         return
     }
 
