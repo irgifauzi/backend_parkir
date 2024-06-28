@@ -279,3 +279,46 @@ func DeleteKoordinat(respw http.ResponseWriter, req *http.Request) {
 	helper.WriteJSON(respw, http.StatusOK, "Coordinates deleted")
 }
 
+func PutKoordinat(respw http.ResponseWriter, req *http.Request) {
+    var putRequest struct {
+        Markers [][]float64 `json:"markers"`
+    }
+
+    if err := json.NewDecoder(req.Body).Decode(&putRequest); err != nil {
+        helper.WriteJSON(respw, http.StatusBadRequest, "Invalid JSON format: " + err.Error())
+        return
+    }
+
+    if len(putRequest.Markers) == 0 {
+        helper.WriteJSON(respw, http.StatusBadRequest, "Markers are required")
+        return
+    }
+
+    id, err := primitive.ObjectIDFromHex("6679b77450a939208a4a7a28")
+    if err != nil {
+        helper.WriteJSON(respw, http.StatusBadRequest, "Invalid ID format")
+        return
+    }
+
+    filter := bson.M{"_id": id}
+    update := bson.M{
+        "$addToSet": bson.M{
+            "markers": bson.M{
+                "$each": putRequest.Markers,
+            },
+        },
+    }
+
+    result, err := atdb.UpdateDoc(config.Mongoconn, "marker", filter, update)
+    if err != nil {
+        helper.WriteJSON(respw, http.StatusInternalServerError, "Error updating document: " + err.Error())
+        return
+    }
+
+    if result.ModifiedCount == 0 {
+        helper.WriteJSON(respw, http.StatusNotFound, "Document not found or not modified")
+        return
+    }
+
+    helper.WriteJSON(respw, http.StatusOK, "Coordinates updated")
+}
