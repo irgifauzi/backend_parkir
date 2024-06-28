@@ -302,10 +302,8 @@ func PutKoordinat(respw http.ResponseWriter, req *http.Request) {
 
     filter := bson.M{"_id": id}
     update := bson.M{
-        "$addToSet": bson.M{
-            "markers": bson.M{
-                "$each": putRequest.Markers,
-            },
+        "$set": bson.M{
+            "markers": putRequest.Markers,
         },
     }
 
@@ -322,3 +320,4 @@ func PutKoordinat(respw http.ResponseWriter, req *http.Request) {
 
     helper.WriteJSON(respw, http.StatusOK, "Coordinates updated")
 }
+
