@@ -103,7 +103,6 @@ func PutTempatParkir(respw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Update Tempat document
 	filter := bson.M{"_id": newTempat.ID}
 	update := bson.M{"$set": newTempat}
 	fmt.Println("Filter:", filter)
@@ -120,31 +119,9 @@ func PutTempatParkir(respw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Update Koordinat document with given marker ID
-	koordinatFilter := bson.M{"_id": newTempat.ID}
-	koordinatUpdate := bson.M{
-		"$set": bson.M{
-			"markers": [][]float64{{newTempat.Lon, newTempat.Lat}},
-		},
-	}
-
-	fmt.Println("Koordinat Filter:", koordinatFilter)
-	fmt.Println("Koordinat Update:", koordinatUpdate)
-
-	koordinatResult, err := atdb.UpdateDoc(config.Mongoconn, "marker", koordinatFilter, koordinatUpdate)
-	if err != nil {
-		fmt.Println("Error updating Koordinat:", err)
-		helper.WriteJSON(respw, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	if koordinatResult.ModifiedCount == 0 {
-		helper.WriteJSON(respw, http.StatusNotFound, "Koordinat document not found or not modified")
-		return
-	}
-
 	helper.WriteJSON(respw, http.StatusOK, newTempat)
 }
+
 
 
 func DeleteTempatParkir(respw http.ResponseWriter, req *http.Request) {
@@ -305,45 +282,38 @@ func DeleteKoordinat(respw http.ResponseWriter, req *http.Request) {
 }
 
 func PutKoordinat(respw http.ResponseWriter, req *http.Request) {
-    var updateRequest struct {
-        OldMarker []float64 `json:"old_marker"`
-        NewMarker []float64 `json:"new_marker"`
-    }
+	var updateRequest struct {
+		ID      primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
+		Markers [][]float64        `json:"markers"`
+	}
 
-    if err := json.NewDecoder(req.Body).Decode(&updateRequest); err != nil {
-        helper.WriteJSON(respw, http.StatusBadRequest, "Invalid JSON format: " + err.Error())
-        return
-    }
+	if err := json.NewDecoder(req.Body).Decode(&updateRequest); err != nil {
+		helper.WriteJSON(respw, http.StatusBadRequest, err.Error())
+		return
+	}
 
-    if len(updateRequest.OldMarker) != 2 || len(updateRequest.NewMarker) != 2 {
-        helper.WriteJSON(respw, http.StatusBadRequest, "Both old_marker and new_marker with two coordinates each are required")
-        return
-    }
+	id, err := primitive.ObjectIDFromHex("6686473df162312b216c27d0")
+	if err != nil {
+		helper.WriteJSON(respw, http.StatusBadRequest, "Invalid ID format")
+		return
+	}
 
-    id, err := primitive.ObjectIDFromHex("667ecc49ebdbee89e671f225") // Example ID, replace with actual if necessary
-    if err != nil {
-        helper.WriteJSON(respw, http.StatusBadRequest, "Invalid ID format")
-        return
-    }
+	filter := bson.M{"_id": id}
+	update := bson.M{
+		"$push": bson.M{
+			"markers": bson.M{
+				"$each":  updateRequest.Markers,
+				"$slice": -10, // Mengatur maksimum elemen dalam array
+			},
+		},
+	}
 
-    filter := bson.M{"_id": id, "markers": updateRequest.OldMarker}
-    update := bson.M{
-        "$set": bson.M{
-            "markers.$": updateRequest.NewMarker,
-        },
-    }
+	if _, err := atdb.UpdateDoc(config.Mongoconn, "marker", filter, update); err != nil {
+		helper.WriteJSON(respw, http.StatusInternalServerError, err.Error())
+		return
+	}
 
-    result, err := atdb.UpdateDoc(config.Mongoconn, "marker", filter, update)
-    if err != nil {
-        helper.WriteJSON(respw, http.StatusInternalServerError, "Error updating document: " + err.Error())
-        return
-    }
-
-    if result.ModifiedCount == 0 {
-        helper.WriteJSON(respw, http.StatusNotFound, "Document not found or marker not modified")
-        return
-    }
-
-    helper.WriteJSON(respw, http.StatusOK, "Coordinates updated")
+	helper.WriteJSON(respw, http.StatusOK, "Coordinates updated")
 }
+
 
