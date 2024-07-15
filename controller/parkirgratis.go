@@ -41,28 +41,27 @@ func GetMarker(respw http.ResponseWriter, req *http.Request) {
 }
 
 func PostTempatParkir(respw http.ResponseWriter, req *http.Request) {
- 
-    var tempatParkir model.Tempat
-    if err := json.NewDecoder(req.Body).Decode(&tempatParkir); err != nil {
-        helper.WriteJSON(respw, http.StatusBadRequest, itmodel.Response{Response: err.Error()})
-        return
-    }
 
-    if tempatParkir.Gambar != "" {
-        tempatParkir.Gambar = "https://raw.githubusercontent.com/parkirgratis/filegambar/main/img/" + tempatParkir.Gambar
-    }
+	var tempatParkir model.Tempat
+	if err := json.NewDecoder(req.Body).Decode(&tempatParkir); err != nil {
+		helper.WriteJSON(respw, http.StatusBadRequest, itmodel.Response{Response: err.Error()})
+		return
+	}
 
-    result, err := config.Mongoconn.Collection("tempat").InsertOne(context.Background(), tempatParkir)
-    if err != nil {
-        helper.WriteJSON(respw, http.StatusInternalServerError, itmodel.Response{Response: err.Error()})
-        return
-    }
+	if tempatParkir.Gambar != "" {
+		tempatParkir.Gambar = "https://raw.githubusercontent.com/parkirgratis/filegambar/main/img/" + tempatParkir.Gambar
+	}
 
-    insertedID := result.InsertedID.(primitive.ObjectID)
+	result, err := config.Mongoconn.Collection("tempat").InsertOne(context.Background(), tempatParkir)
+	if err != nil {
+		helper.WriteJSON(respw, http.StatusInternalServerError, itmodel.Response{Response: err.Error()})
+		return
+	}
 
-    helper.WriteJSON(respw, http.StatusOK, itmodel.Response{Response: fmt.Sprintf("Tempat parkir berhasil disimpan dengan ID: %s", insertedID.Hex())})
+	insertedID := result.InsertedID.(primitive.ObjectID)
+
+	helper.WriteJSON(respw, http.StatusOK, itmodel.Response{Response: fmt.Sprintf("Tempat parkir berhasil disimpan dengan ID: %s", insertedID.Hex())})
 }
-
 
 func PostKoordinat(respw http.ResponseWriter, req *http.Request) {
 	var newKoor model.Koordinat
@@ -122,8 +121,6 @@ func PutTempatParkir(respw http.ResponseWriter, req *http.Request) {
 	helper.WriteJSON(respw, http.StatusOK, newTempat)
 }
 
-
-
 func DeleteTempatParkir(respw http.ResponseWriter, req *http.Request) {
 	var requestBody struct {
 		ID string `json:"id"`
@@ -169,7 +166,6 @@ func AdminLogin(respw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	
 	clientOptions := options.Client().ApplyURI(config.MongoURI) // Assuming MongoURI is defined in your config
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
@@ -177,7 +173,6 @@ func AdminLogin(respw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	defer client.Disconnect(context.TODO())
-
 
 	adminCollection := client.Database("parkir_db").Collection("admin")
 
@@ -209,7 +204,7 @@ func AdminRegister(respw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	clientOptions := options.Client().ApplyURI(config.MongoURI) 
+	clientOptions := options.Client().ApplyURI(config.MongoURI)
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
 		helper.WriteJSON(respw, http.StatusInternalServerError, map[string]string{"message": "Failed to connect to MongoDB", "error": err.Error()})
@@ -289,35 +284,67 @@ func PutKoordinat(respw http.ResponseWriter, req *http.Request) {
 
 	// Decode the JSON request body into the updateRequest struct
 	if err := json.NewDecoder(req.Body).Decode(&updateRequest); err != nil {
-		helper.WriteJSON(respw, http.StatusBadRequest, err.Error())
+		http.Error(respw, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Use the provided ID from the request
 	id := updateRequest.ID
-
 	if id.IsZero() {
-		helper.WriteJSON(respw, http.StatusBadRequest, "ID is required")
+		http.Error(respw, "ID is required", http.StatusBadRequest)
 		return
 	}
 
-	// Define the filter and update operations for MongoDB
+	// Define the filter for the document
 	filter := bson.M{"_id": id}
+
+	// Establish a MongoDB connection
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb+srv://irgifauzi:%40Sasuke123@webservice.rq9zk4m.mongodb.net/"))
+	if err != nil {
+		http.Error(respw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer client.Disconnect(context.TODO())
+
+	collection := client.Database("parkir_db").Collection("marker")
+
+	// Fetch the current document to find the index of the marker to update
+	var document struct {
+		Markers [][]float64 `bson:"markers"`
+	}
+	if err := collection.FindOne(context.TODO(), filter).Decode(&document); err != nil {
+		http.Error(respw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Find the index of the marker to update
+	var index int = -1
+	for i, marker := range document.Markers {
+		if len(marker) == 2 && marker[0] == updateRequest.Markers[0][0] && marker[1] == updateRequest.Markers[0][1] {
+			index = i
+			break
+		}
+	}
+
+	if index == -1 {
+		http.Error(respw, "Marker not found", http.StatusBadRequest)
+		return
+	}
+
+	// Update the specific marker in the array
 	update := bson.M{
 		"$set": bson.M{
-			"markers": updateRequest.Markers,
+			fmt.Sprintf("markers.%d", index): updateRequest.Markers[1],
 		},
 	}
 
 	// Apply the update operation to the MongoDB collection
-	if _, err := atdb.UpdateDoc(config.Mongoconn, "marker", filter, update); err != nil {
-		helper.WriteJSON(respw, http.StatusInternalServerError, err.Error())
+	if _, err := collection.UpdateOne(context.TODO(), filter, update); err != nil {
+		http.Error(respw, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Respond with a success message
-	helper.WriteJSON(respw, http.StatusOK, "Coordinates updated")
+	respw.WriteHeader(http.StatusOK)
+	respw.Write([]byte("Coordinate updated"))
 }
-
-
-
