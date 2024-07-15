@@ -293,21 +293,19 @@ func PutKoordinat(respw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Convert a hardcoded string to a MongoDB ObjectID
-	id, err := primitive.ObjectIDFromHex("6686473df162312b216c27d0")
-	if err != nil {
-		helper.WriteJSON(respw, http.StatusBadRequest, "Invalid ID format")
+	// Use the provided ID from the request
+	id := updateRequest.ID
+
+	if id.IsZero() {
+		helper.WriteJSON(respw, http.StatusBadRequest, "ID is required")
 		return
 	}
 
 	// Define the filter and update operations for MongoDB
 	filter := bson.M{"_id": id}
 	update := bson.M{
-		"$push": bson.M{
-			"markers": bson.M{
-				"$each":  updateRequest.Markers,
-				"$slice": -10, // Keep only the last 10 elements in the markers array
-			},
+		"$set": bson.M{
+			"markers": updateRequest.Markers,
 		},
 	}
 
