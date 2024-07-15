@@ -287,33 +287,39 @@ func PutKoordinat(respw http.ResponseWriter, req *http.Request) {
 		Markers [][]float64        `json:"markers"`
 	}
 
+	// Decode the JSON request body into the updateRequest struct
 	if err := json.NewDecoder(req.Body).Decode(&updateRequest); err != nil {
 		helper.WriteJSON(respw, http.StatusBadRequest, err.Error())
 		return
 	}
 
+	// Convert a hardcoded string to a MongoDB ObjectID
 	id, err := primitive.ObjectIDFromHex("6686473df162312b216c27d0")
 	if err != nil {
 		helper.WriteJSON(respw, http.StatusBadRequest, "Invalid ID format")
 		return
 	}
 
+	// Define the filter and update operations for MongoDB
 	filter := bson.M{"_id": id}
 	update := bson.M{
 		"$push": bson.M{
 			"markers": bson.M{
 				"$each":  updateRequest.Markers,
-				"$slice": -10, // Mengatur maksimum elemen dalam array
+				"$slice": -10, // Keep only the last 10 elements in the markers array
 			},
 		},
 	}
 
+	// Apply the update operation to the MongoDB collection
 	if _, err := atdb.UpdateDoc(config.Mongoconn, "marker", filter, update); err != nil {
 		helper.WriteJSON(respw, http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	// Respond with a success message
 	helper.WriteJSON(respw, http.StatusOK, "Coordinates updated")
 }
+
 
 
