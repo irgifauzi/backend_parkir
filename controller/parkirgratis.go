@@ -103,6 +103,7 @@ func PutTempatParkir(respw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// Update Tempat document
 	filter := bson.M{"_id": newTempat.ID}
 	update := bson.M{"$set": newTempat}
 	fmt.Println("Filter:", filter)
@@ -119,27 +120,32 @@ func PutTempatParkir(respw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Update the corresponding Koordinat document if Lon and Lat are changed
-	if newTempat.Lon != 0 && newTempat.Lat != 0 {
-		koordinatFilter := bson.M{"_id": newTempat.ID}
-		koordinatUpdate := bson.M{
-			"$set": bson.M{
-				"markers": [][]float64{{newTempat.Lon, newTempat.Lat}},
-			},
-		}
+	// Update Koordinat document with given marker ID
+	koordinatFilter := bson.M{"_id": newTempat.ID}
+	koordinatUpdate := bson.M{
+		"$set": bson.M{
+			"markers": [][]float64{{newTempat.Lon, newTempat.Lat}},
+		},
+	}
 
-		fmt.Println("Koordinat Filter:", koordinatFilter)
-		fmt.Println("Koordinat Update:", koordinatUpdate)
+	fmt.Println("Koordinat Filter:", koordinatFilter)
+	fmt.Println("Koordinat Update:", koordinatUpdate)
 
-		_, err := atdb.UpdateDoc(config.Mongoconn, "marker", koordinatFilter, koordinatUpdate)
-		if err != nil {
-			helper.WriteJSON(respw, http.StatusInternalServerError, err.Error())
-			return
-		}
+	koordinatResult, err := atdb.UpdateDoc(config.Mongoconn, "marker", koordinatFilter, koordinatUpdate)
+	if err != nil {
+		fmt.Println("Error updating Koordinat:", err)
+		helper.WriteJSON(respw, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if koordinatResult.ModifiedCount == 0 {
+		helper.WriteJSON(respw, http.StatusNotFound, "Koordinat document not found or not modified")
+		return
 	}
 
 	helper.WriteJSON(respw, http.StatusOK, newTempat)
 }
+
 
 func DeleteTempatParkir(respw http.ResponseWriter, req *http.Request) {
 	var requestBody struct {
