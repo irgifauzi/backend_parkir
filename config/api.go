@@ -11,5 +11,3 @@ var PublicKeyWhatsAuth string
 var WAAPIToken string
 
 var GitHubAccessToken, GitHubAuthorName, GitHubAuthorEmail string
-
-//fixx error ddss ddssja

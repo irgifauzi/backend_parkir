@@ -29,7 +29,6 @@ func GetLokasi(respw http.ResponseWriter, req *http.Request) {
 	helper.WriteJSON(respw, http.StatusOK, kor)
 }
 
-
 func GetMarker(respw http.ResponseWriter, req *http.Request) {
 	var resp itmodel.Response
 	mar, err := atdb.GetOneLatestDoc[model.Koordinat](config.Mongoconn, "marker", bson.M{})
@@ -154,6 +153,80 @@ func DeleteTempatParkir(respw http.ResponseWriter, req *http.Request) {
 	helper.WriteJSON(respw, http.StatusOK, map[string]string{"message": "Document deleted successfully"})
 }
 
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func AdminLogin(respw http.ResponseWriter, req *http.Request) {
+	var loginReq LoginRequest
+
+	if err := json.NewDecoder(req.Body).Decode(&loginReq); err != nil {
+		helper.WriteJSON(respw, http.StatusBadRequest, map[string]string{"message": "Invalid JSON data"})
+		return
+	}
+
+	clientOptions := options.Client().ApplyURI(config.MongoURI) // Assuming MongoURI is defined in your config
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+	if err != nil {
+		helper.WriteJSON(respw, http.StatusInternalServerError, map[string]string{"message": "Failed to connect to MongoDB", "error": err.Error()})
+		return
+	}
+	defer client.Disconnect(context.TODO())
+
+
+	adminCollection := client.Database("parkir_db").Collection("admin")
+
+	var admin model.Admin
+	filter := bson.M{"username": loginReq.Username, "password": loginReq.Password}
+	err = adminCollection.FindOne(context.TODO(), filter).Decode(&admin)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			helper.WriteJSON(respw, http.StatusUnauthorized, map[string]string{"message": "Invalid username or password"})
+		} else {
+			helper.WriteJSON(respw, http.StatusInternalServerError, map[string]string{"message": "Failed to login", "error": err.Error()})
+		}
+		return
+	}
+
+	helper.WriteJSON(respw, http.StatusOK, map[string]string{"message": "Login successful"})
+}
+
+
+func DeleteKoordinat(respw http.ResponseWriter, req *http.Request) {
+	var deleteRequest struct {
+		ID      primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
+		Markers [][]float64 `json:"markers"`
+	}
+
+	if err := json.NewDecoder(req.Body).Decode(&deleteRequest); err != nil {
+		helper.WriteJSON(respw, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	id, err := primitive.ObjectIDFromHex("669510e39590720071a5691d")
+	if err != nil {
+		helper.WriteJSON(respw, http.StatusBadRequest, "Invalid ID format")
+		return
+	}
+
+	filter := bson.M{"_id": id}
+	update := bson.M{
+		"$pull": bson.M{
+			"markers": bson.M{
+				"$in": deleteRequest.Markers,
+			},
+		},
+	}
+
+	if _, err := atdb.UpdateDoc(config.Mongoconn, "marker", filter, update); err != nil {
+		helper.WriteJSON(respw, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	helper.WriteJSON(respw, http.StatusOK, "Coordinates deleted")
+}
+
 func PutKoordinat(respw http.ResponseWriter, req *http.Request) {
 	var updateRequest struct {
 		ID      primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
@@ -220,38 +293,4 @@ func PutKoordinat(respw http.ResponseWriter, req *http.Request) {
 
 	respw.WriteHeader(http.StatusOK)
 	respw.Write([]byte("Coordinate updated"))
-}
-
-func DeleteKoordinat(respw http.ResponseWriter, req *http.Request) {
-	var deleteRequest struct {
-		ID      primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
-		Markers [][]float64 `json:"markers"`
-	}
-
-	if err := json.NewDecoder(req.Body).Decode(&deleteRequest); err != nil {
-		helper.WriteJSON(respw, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	id, err := primitive.ObjectIDFromHex("669510e39590720071a5691d")
-	if err != nil {
-		helper.WriteJSON(respw, http.StatusBadRequest, "Invalid ID format")
-		return
-	}
-
-	filter := bson.M{"_id": id}
-	update := bson.M{
-		"$pull": bson.M{
-			"markers": bson.M{
-				"$in": deleteRequest.Markers,
-			},
-		},
-	}
-
-	if _, err := atdb.UpdateDoc(config.Mongoconn, "marker", filter, update); err != nil {
-		helper.WriteJSON(respw, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	helper.WriteJSON(respw, http.StatusOK, "Coordinates deleted")
 }
