@@ -26,7 +26,7 @@ jobs:
         run: 'gcloud info'
       - name: 'Deploy a gen 2 cloud function'
         run: |
-          gcloud functions deploy parkirgratisbackend \
+          gcloud functions deploy back \
             --region=asia-southeast2 \
             --allow-unauthenticated \
             --entry-point=WebHook \
@@ -35,8 +35,8 @@ jobs:
             --trigger-http \
             --set-env-vars=MONGOSTRING='${{ secrets.MONGOSTRING }}'
       - name: 'Cek eksistensi fungsi'
-        run: 'gcloud functions describe parkirgratisbackend --region=asia-southeast2'
+        run: 'gcloud functions describe back --region=asia-southeast2'
       - name: 'Cek log debugging'
-        run: 'gcloud functions logs read parkirgratisbackend --region=asia-southeast2'
+        run: 'gcloud functions logs read back --region=asia-southeast2'
       - name: 'Cleaning Artifact Registry'
         run: 'gcloud artifacts repositories delete gcf-artifacts --location=asia-southeast2 --quiet'
