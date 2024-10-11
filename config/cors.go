@@ -6,9 +6,9 @@ import (
 )
 
 var AllowedOrigins = []string{
-	"https://parkirgratis.github.io",
+	"https://geographicinformationsystem.github.io/parkirgratis/",
 	"https://parkirgratis.github.io.id",
-	"https://parkirgratis.github.io/input",
+	"https://geographicinformationsystem.github.io/input/",
 	"http://127.0.0.1:5500",
 	"http://127.0.0.1:5501",
 }

@@ -1,7 +1,9 @@
 package model
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
-
+import (
+	"time"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 type Tempat struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
 	Nama_Tempat string             `bson:"nama_tempat,omitempty" json:"nama_tempat,omitempty"`
@@ -20,4 +22,11 @@ type Admin struct{
 	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty"`
 	Username string             `bson:"username" json:"username"`
 	Password string             `bson:"password" json:"password"`
+}
+
+type Token struct {
+	ID			string 				`bson:"_id,omitempty" json:"_id,omitempty"`
+	Token		string				`bson:"token" json:"token,omitempty"`
+	AdminID		string				`bson:"admin_id" json:"admin_id,omitempty"`
+	CreatedAt	time.Time			`bson:"created_at" json:"created_at"` 
 }

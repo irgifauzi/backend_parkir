@@ -5,6 +5,7 @@ go 1.22.3
 require (
 	aidanwoods.dev/go-paseto v1.5.1
 	github.com/GoogleCloudPlatform/functions-framework-go v1.8.1
+	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/go-github/v59 v59.0.0
 	github.com/whatsauth/itmodel v0.0.1
 	go.mongodb.org/mongo-driver v1.15.0
