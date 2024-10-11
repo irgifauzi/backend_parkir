@@ -5,6 +5,7 @@ import (
 
 	"github.com/gocroot/config"
 	"github.com/gocroot/controller"
+	"github.com/gocroot/handler"
 	"github.com/gocroot/helper"
 )
 
@@ -39,9 +40,7 @@ func URL(w http.ResponseWriter, r *http.Request) {
 	case method == "DELETE" && path == "/data/koordinat":
 		controller.DeleteKoordinat(w, r)
 	case method == "POST" && path == "/admin/login":
-		controller.AdminLogin(w, r)
-	case method == "POST" && path == "/admin/register":
-		controller.AdminRegister(w, r)
+		handler.Login(w, r)
 	default:
 		controller.NotFound(w, r)
 	}

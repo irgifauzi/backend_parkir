@@ -1,23 +1,19 @@
 package config
 
-import "net/http"
+import (
+	"net/http"
+	"strings"
+)
 
-var Origins = []string{
-	"https://naskah.bukupedia.co.id",
-	"https://auth.ulbi.ac.id",
-	"https://sip.ulbi.ac.id",
-	"https://euis.ulbi.ac.id",
-	"https://home.ulbi.ac.id",
-	"https://alpha.ulbi.ac.id",
-	"https://dias.ulbi.ac.id",
-	"https://iteung.ulbi.ac.id",
-	"https://whatsauth.github.io",
-	"https://pmb.ulbi.ac.id",
-	"https://parkirgratis.github.io",
+var AllowedOrigins = []string{
+	"https://geographicinformationsystem.github.io/parkirgratis/",
 	"https://parkirgratis.github.io.id",
+	"https://geographicinformationsystem.github.io/input/",
+	"http://127.0.0.1:5500",
+	"http://127.0.0.1:5501",
 }
 
-var Headers = []string{
+var AllowedHeaders = []string{
 	"Origin",
 	"Content-Type",
 	"Accept",
@@ -31,18 +27,29 @@ var Headers = []string{
 }
 
 func SetAccessControlHeaders(w http.ResponseWriter, r *http.Request) bool {
-	// Set CORS headers for the preflight request
+	origin := r.Header.Get("Origin")
+
+	allowedOrigin := false
+	for _, o := range AllowedOrigins {
+		if o == origin {
+			allowedOrigin = true
+			break
+		}
+	}
+	if !allowedOrigin {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return false
+	}
+
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", strings.Join(AllowedHeaders, ", "))
+	w.Header().Set("Access-Control-Allow-Origin", origin)
+
 	if r.Method == http.MethodOptions {
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type,Login")
-		w.Header().Set("Access-Control-Allow-Methods", "POST,GET,PUT,DELETE")
-		w.Header().Set("Access-Control-Allow-Origin", "https://parkirgratis.github.io")
-		w.Header().Set("Access-Control-Max-Age", "3600")
-		w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusOK)
 		return true
 	}
-	// Set CORS headers for the main request.
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
-	w.Header().Set("Access-Control-Allow-Origin", "https://parkirgratis.github.io")
+
 	return false
 }
